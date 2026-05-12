@@ -5,11 +5,9 @@
   "display": "standalone",
   "background_color": "#050508",
   "theme_color": "#bc13fe",
-  "description": "لعبة XO احترافية نيون - Zaid Alzoubi",
-  "orientation": "portrait",
   "icons": [
     {
-      "src": "neon_xo_512.png",
+      "src": "xo_192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
