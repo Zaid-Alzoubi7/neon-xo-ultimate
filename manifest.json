@@ -1,0 +1,17 @@
+{
+  "name": "Neon XO Ultimate V15",
+  "short_name": "XO Neon",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#bc13fe",
+  "description": "لعبة XO نيون احترافية - Zaid Jo",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "neon_xo_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
