@@ -1,25 +1,32 @@
-// اسم "الخزنة" أو الإصدار الخاص بالتطبيق
-const cacheName = 'xo-neon-v15-v1';
+/**
+ * Neon XO Ultimate V15 - Service Worker
+ * المطور: Zaid Alzoubi
+ */
 
-// قائمة الملفات التي نريد تخزينها لتعمل بدون إنترنت
+// اسم الخزنة (تغييره عند كل تحديث رئيسي للكود لضمان تحديث الملفات لدى المستخدم)
+const cacheName = 'neon-xo-v15-cache-v1';
+
+// قائمة الملفات المطلوب تخزينها بناءً على الصورة 133106.jpg
 const assets = [
   './',
   './index.html',
   './manifest.json',
-  './neon_xo_512.png' // تم التعديل بناءً على اسم الأيقونة في مجلدك
+  './sw.js',
+  './neon_xo_512.png',
+  './xo_192x192.png'
 ];
 
-// 1. مرحلة التثبيت: تخزين الملفات في الذاكرة لأول مرة
+// 1. مرحلة التثبيت (Install): يتم فيها فتح الخزنة وتخزين الملفات
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(cacheName).then(cache => {
-      console.log('جاري تخزين ملفات اللعبة...');
+      console.log('✅ [Service Worker] جاري تخزين ملفات اللعبة في الذاكرة...');
       return cache.addAll(assets);
     })
   );
 });
 
-// 2. مرحلة الجلب: جلب الملفات من الذاكرة بدلاً من الإنترنت
+// 2. مرحلة الجلب (Fetch): استرداد الملفات من الذاكرة بدلاً من الإنترنت
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => {
@@ -29,7 +36,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 3. مرحلة التنشيط: مسح النسخ القديمة إذا قمنا بتحديث الإصدار
+// 3. مرحلة التنشيط (Activate): تنظيف الخزنات القديمة لضمان عدم تعارض الإصدارات
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
