@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon XO - Zaid Jo</title>
+    <title>Neon XO - Ultimate Edition</title>
     <style type="text/css">
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght=400;700;900&display=swap');
         
@@ -32,9 +32,29 @@
             align-items: center; 
             height: 100vh; 
             overflow: hidden; 
+            position: relative;
         }
 
-        .container { width: 100%; max-width: 360px; margin: auto; text-align: center; position: relative; }
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 360px; 
+            margin: auto; 
+            text-align: center; 
+            position: relative; 
+            z-index: 2;
+        }
+        
         .screen { display: none; flex-direction: column; gap: 12px; animation: fadeIn 0.3s ease; padding: 15px; }
         .screen.active { display: flex; }
         
@@ -42,14 +62,46 @@
         .hero-x { color: var(--x-color); text-shadow: 0 0 20px var(--x-color); }
         .hero-o { color: var(--o-color); text-shadow: 0 0 20px var(--o-color); }
         
-        button { 
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(188, 19, 254, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .score-box { display: flex; flex-direction: column; gap: 2px; }
+        .score-val { font-weight: 900; font-size: 1.2rem; }
+        .score-box.x-score .score-val { color: var(--x-color); text-shadow: 0 0 10px var(--x-color); }
+        .score-box.o-score .score-val { color: var(--o-color); text-shadow: 0 0 10px var(--o-color); }
+        
+        button, a.neon-btn { 
             padding: 14px; font-size: 1rem; cursor: pointer; background: rgba(255, 255, 255, 0.04); 
             color: #fff; border: 2px solid var(--grid-color); border-radius: 14px; 
-            transition: transform 0.2s; font-weight: 700; font-family: inherit; outline: none; 
+            transition: transform 0.2s, box-shadow 0.2s; font-weight: 700; font-family: inherit; outline: none;
+            box-shadow: 0 0 10px rgba(188, 19, 254, 0.1); text-decoration: none; display: block;
         }
-        button:active { transform: scale(0.95); }
+        button:active, a.neon-btn:active { transform: scale(0.95); }
         
-        .board-container { position: relative; width: fit-content; margin: 15px auto; direction: ltr !important; }
+        .slide-screen {
+            position: absolute; left: 15px; right: 15px; background: rgba(5, 5, 8, 0.95);
+            border: 2px solid var(--grid-color); border-radius: 20px; padding: 20px;
+            box-shadow: 0 0 25px rgba(188, 19, 254, 0.4); z-index: 10;
+            display: none; flex-direction: column; gap: 15px; text-align: start;
+        }
+        
+        @keyframes slideDown { from { transform: translateY(-120%); } to { transform: translateY(0); } }
+        .slide-down-active { display: flex; animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards; top: 40px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        
+        .panel-label { font-weight: 700; color: var(--o-color); text-shadow: 0 0 8px var(--o-color); display: block; font-size: 1rem; margin-bottom: 2px; }
+        .panel-text { font-size: 0.9rem; color: #fff; display: block; margin-bottom: 10px; font-weight: 400; line-height: 1.5; }
+        .neon-highlight { font-size: 1.4rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px var(--x-color); }
+
+        .board-container { position: relative; width: fit-content; margin: 10px auto; direction: ltr !important; }
         .board { 
             display: grid; grid-template-columns: repeat(3, 1fr); 
             width: min(300px, 80vw); height: min(300px, 80vw); 
@@ -67,29 +119,29 @@
         }
 
         .cell { display: flex; justify-content: center; align-items: center; font-size: clamp(2rem, 10vw, 3rem); cursor: pointer; font-weight: 900; }
-        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .cell.x { color: var(--x-color); text-shadow: 0 0 15px var(--x-color); animation: pop 0.2s ease; }
         .cell.o { color: var(--o-color); text-shadow: 0 0 15px var(--o-color); animation: pop 0.2s ease; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         
         .cell:nth-child(1), .cell:nth-child(2), .cell:nth-child(4), .cell:nth-child(5), .cell:nth-child(7), .cell:nth-child(8) { border-right: 4px solid var(--grid-color); }
         .cell:nth-child(1), .cell:nth-child(2), .cell:nth-child(3), .cell:nth-child(4), .cell:nth-child(5), .cell:nth-child(6) { border-bottom: 4px solid var(--grid-color); }
 
-        .status-area { font-size: 1.2rem; font-weight: 700; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .status-area { font-size: 1.2rem; font-weight: 700; min-height: 45px; display: flex; align-items: center; justify-content: center; }
         
-        .back-link { color: #666; font-size: 0.9rem; margin-top: 10px; cursor: pointer; border: none; background: none; font-family: inherit; }
+        .back-link { color: #666; font-size: 0.9rem; margin-top: 10px; cursor: pointer; border: none; background: none; font-family: inherit; text-align: center; display: block; width: 100%; }
         .footer-rights { font-size: 0.7rem; color: rgba(255,255,255,0.2); margin-top: 15px; }
         select { padding: 10px; background: #000; color: #fff; border: 1px solid var(--grid-color); border-radius: 8px; width: 100%; font-family: inherit; }
     </style>
 </head>
 <body>
 
+<canvas id="bg-canvas"></canvas>
+
 <div class="container">
     <div id="main-menu" class="screen active">
         <div class="hero-title"><span class="hero-x">X</span><span class="hero-o">O</span></div>
         <button id="btn-start" onclick="showScreen('mode-selection')">ابدأ المواجهة</button>
         <button id="btn-settings" onclick="showScreen('settings-menu')">الإعدادات</button>
-        <button id="btn-support" onclick="contactSupport()">الدعم الفني</button>
         <div class="footer-rights">© 2026 ZAID JO</div>
     </div>
 
@@ -103,24 +155,67 @@
     <div id="difficulty-menu" class="screen">
         <h2 id="title-diff">الخصم</h2>
         <button id="btn-easy" onclick="startGame(1, 'easy')">المبتدئ</button>
+        <button id="btn-medium" onclick="startGame(1, 'medium')">المتوسط</button>
         <button id="btn-hard" onclick="startGame(1, 'hard')">Impossible AI</button>
         <button id="btn-back-diff" class="back-link" onclick="showScreen('mode-selection')">رجوع</button>
     </div>
 
     <div id="settings-menu" class="screen">
         <h2 id="title-settings">الإعدادات</h2>
-        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; text-align: start;">
-            <label id="lbl-lang">اللغة (Language):</label>
-            <select id="lang-select" onchange="changeLang()">
+        
+        <div style="background:rgba(255,255,255,0.03); padding:12px; border-radius:12px; text-align: start; border: 1px solid rgba(255,255,255,0.05);">
+            <label id="lbl-lang" style="font-weight: 700; font-size: 0.95rem;">اللغة (Language):</label>
+            <select id="lang-select" onchange="changeLang()" style="margin-top: 6px;">
                 <option value="ar">العربية</option>
                 <option value="en">English</option>
             </select>
         </div>
-        <button id="btn-save" onclick="showScreen('main-menu')">حفظ</button>
+
+        <button id="btn-trigger-about" onclick="toggleAboutScreen(true)" style="border-color: rgba(188, 19, 254, 0.5);">حول اللعبة 📖</button>
+        <button id="btn-trigger-support" onclick="showScreen('support-panel')" style="border-color: rgba(0, 242, 255, 0.5);">الدعم الفني 🛠️</button>
+        <button id="btn-save" onclick="showScreen('main-menu')" style="margin-top: 5px;">رجوع للقائمة</button>
+    </div>
+
+    <div id="about-panel" class="slide-screen">
+        <span class="panel-label" id="lbl-dev-title">مطور اللعبة:</span>
+        <span class="neon-highlight">Zaid Alzoubi</span>
+        
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0;">
+        
+        <span class="panel-label" id="lbl-about-title">عن اللعبة:</span>
+        <span class="panel-text" id="lbl-about-text">تم تصميم وتطوير هذه اللعبة بالكامل بواسطة المطور بمساعدة الذكاء الاصطناعي لتقديم تجربة نيون فريدة تجمع بين التحدي البصري والذكاء الخوارزمي الصارم.</span>
+        
+        <button onclick="toggleAboutScreen(false)" style="margin-top: 5px; width: 100%; border-color: var(--x-color); font-size: 0.9rem; padding: 10px;">إغلاق X</button>
+    </div>
+
+    <div id="support-panel" class="screen">
+        <h2 id="title-support-panel" style="text-shadow: 0 0 15px var(--o-color); color: var(--o-color);">قاعدة الدعم</h2>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 242, 255, 0.2); padding: 15px; border-radius: 16px; text-align: center; margin-bottom: 10px;">
+            <p id="txt-support-info" style="font-size: 0.95rem; line-height: 1.6; margin: 0 0 15px 0;">إذا كان لديك أي اقتراحات، أفكار تطويرية، أو واجهت مشكلة برمجية؛ يمكنك الانتقال الفوري لقناتنا عبر يوزر التيليجرام الرسمي المعتمد.</p>
+            <span style="font-weight: 900; font-size: 1.1rem; color: #fff; text-shadow: 0 0 12px var(--grid-color); display: block; margin-bottom: 5px;">@Alzoubi_x0_support</span>
+        </div>
+        <a href="https://t.me/Alzoubi_x0_support" target="_blank" class="neon-btn" id="btn-go-telegram" style="border-color: var(--o-color); color: #fff; text-shadow: 0 0 10px var(--o-color); text-align: center;">الانتقال لتيليجرام 🚀</a>
+        <button class="back-link" onclick="showScreen('settings-menu')" id="btn-back-support">رجوع للإعدادات</button>
     </div>
 
     <div id="game-screen" class="screen">
+        <div class="scoreboard">
+            <div class="score-box x-score">
+                <span id="lbl-score-x">لاعب X</span>
+                <span class="score-val" id="val-score-x">0</span>
+            </div>
+            <div class="score-box">
+                <span id="lbl-score-ties">تعادلات</span>
+                <span class="score-val" id="val-score-ties">0</span>
+            </div>
+            <div class="score-box o-score">
+                <span id="lbl-score-o">الخصم O</span>
+                <span class="score-val" id="val-score-o">0</span>
+            </div>
+        </div>
+
         <div class="status-area" id="game-status"></div>
+        
         <div class="board-container">
             <div id="win-line" class="win-line"></div>
             <div class="board" id="board">
@@ -129,33 +224,71 @@
                 <div class="cell" data-idx="6"></div><div class="cell" data-idx="7"></div><div class="cell" data-idx="8"></div>
             </div>
         </div>
-        <button id="btn-reset" onclick="resetGame()">إعادة اللعب</button>
-        <button id="btn-main-menu" class="back-link" onclick="showScreen('main-menu')">القائمة الرئيسية</button>
+        <button id="btn-reset" onclick="resetGame()">جولة جديدة 🔄</button>
+        <button id="btn-main-menu" class="back-link" onclick="handleGameExit()">رجوع</button>
     </div>
 </div>
 
 <script type="text/javascript">
     const translations = {
-        ar: { start: "ابدأ المواجهة", settings: "الإعدادات", support: "الدعم الفني", mode: "طور اللعب", vsAi: "ضد الذكاء الاصطناعي", vsFriend: "تحدي صديق", back: "رجوع", diff: "الخصم", easy: "المبتدئ", hard: "Impossible AI", lang: "اللغة (Language):", save: "حفظ", reset: "إعادة اللعب", mainMenu: "القائمة الرئيسية", supportMsg: "للتواصل والدعم: @Alzoubi_x0_support على تيليجرام" },
-        en: { start: "START GAME", settings: "SETTINGS", support: "SUPPORT", mode: "GAME MODE", vsAi: "VS COMPUTER", vsFriend: "VS FRIEND", back: "BACK", diff: "DIFFICULTY", easy: "ROOKIE", hard: "IMPOSSIBLE AI", lang: "Language:", save: "SAVE", reset: "RESET GAME", mainMenu: "MAIN MENU", supportMsg: "Support: @Alzoubi_x0_support on Telegram" }
+        ar: { 
+            start: "ابدأ المواجهة", settings: "الإعدادات", mode: "طور اللعب", vsAi: "ضد الذكاء الاصطناعي", vsFriend: "تحدي صديق", back: "رجوع", diff: "الخصم", easy: "المبتدئ", medium: "المتوسط", hard: "Impossible AI", lang: "اللغة (Language):", save: "رجوع للقائمة", reset: "جولة جديدة 🔄", mainMenu: "القائمة الرئيسية", scoreX: "لاعب X", scoreO_AI: "الذكاء الاصطناعي", scoreO_Friend: "لاعب O", ties: "تعادلات",
+            devTitle: "مطور اللعبة:", aboutTitle: "عن اللعبة:", aboutText: "تم تصميم وتطوير هذه اللعبة بالكامل بواسطة المطور بمساعدة الذكاء الاصطناعي لتقديم تجربة نيون فريدة تجمع بين التحدي البصري والذكاء الخوارزمي الصارم.",
+            btnAbout: "حول اللعبة 📖", btnSupport: "الدعم الفني 🛠️", titleSupportPanel: "قاعدة الدعم", txtSupportInfo: "إذا كان لديك أي اقتراحات، أفكار تطويرية، أو واجهت مشكلة برمجية؛ يمكنك الانتقال الفوري لقناتنا عبر يوزر التيليجرام الرسمي المعتمد.", btnGoTelegram: "الانتقال لتيليجرام 🚀"
+        },
+        en: { 
+            start: "START GAME", settings: "SETTINGS", mode: "GAME MODE", vsAi: "VS COMPUTER", vsFriend: "VS FRIEND", back: "BACK", diff: "DIFFICULTY", easy: "ROOKIE", medium: "MEDIUM", hard: "IMPOSSIBLE AI", lang: "Language:", save: "BACK TO MENU", reset: "NEXT ROUND 🔄", mainMenu: "MAIN MENU", scoreX: "Player X", scoreO_AI: "Computer O", scoreO_Friend: "Player O", ties: "Ties",
+            devTitle: "Game Developer:", aboutTitle: "About The Game:", aboutText: "This game was fully crafted and engineered by the developer with the assistance of Artificial Intelligence, providing a unique neon experience powered by absolute minimax algorithmic intelligence.",
+            btnAbout: "About Game 📖", btnSupport: "Tech Support 🛠️", titleSupportPanel: "Support Hub", txtSupportInfo: "If you have any suggestions, feature ideas, or encountered a glitch, feel free to jump directly into our channel via the official verified Telegram username.", btnGoTelegram: "Launch Telegram 🚀"
+        }
     };
 
     let boardState = Array(9).fill(""), currentPlayer = "X", gameActive = true, winner = null, gameMode = 1, aiDifficulty = 'hard', aiThinking = false;
     let curLang = 'ar';
     
+    // تصفير كامل وصارم للذاكرة المخزنة مؤقتاً لتجنب أخطاء NaN القديمة
+    try {
+        localStorage.removeItem('zaid_xo_scores');
+        sessionStorage.removeItem('zaid_xo_session_scores');
+    } catch(e){}
+
+    // العداد صار متغير داخلي (In-memory) يتلاشى كلياً بمجرد تدمير الجلسة أو الخروج للقائمة الرئيسية
+    let scores = { x: 0, o: 0, ties: 0 };
+
     try {
         curLang = localStorage.getItem('zaid_xo_lang') || 'ar';
-    } catch (e) {
-        console.warn("Storage access denied, defaulting to 'ar'", e);
-    }
+    } catch (e) { console.warn("Storage fetch failed", e); }
 
     const allCells = document.querySelectorAll('.cell');
 
     function showScreen(id) {
+        toggleAboutScreen(false);
         const screens = document.querySelectorAll('.screen');
         screens.forEach(s => s.classList.remove('active'));
         const target = document.getElementById(id);
         if (target) target.classList.add('active');
+    }
+
+    function toggleAboutScreen(show) {
+        const panel = document.getElementById('about-panel');
+        if (show) {
+            panel.classList.add('slide-down-active');
+        } else {
+            panel.classList.remove('slide-down-active');
+        }
+    }
+
+    function handleGameExit() {
+        // العداد يتصفر بالكامل فوراً عند اتخاذ قرار الخروج من اللعبة لضمان نزاهة الجلسة القادمة
+        scores = { x: 0, o: 0, ties: 0 };
+        
+        if (gameMode === 1) {
+            // إذا كان بيلعب ضد الذكاء الاصطناعي، يرجعه لقائمة الذكاءات (الصعوبة)
+            showScreen('difficulty-menu');
+        } else {
+            // إذا كان بيلعب ضد صديق، يرجعه لقائمة أطوار اللعب
+            showScreen('mode-selection');
+        }
     }
 
     function updateUI() {
@@ -167,20 +300,39 @@
 
             safeUpdate('btn-start', t.start);
             safeUpdate('btn-settings', t.settings);
-            safeUpdate('btn-support', t.support);
             safeUpdate('title-mode', t.mode);
             safeUpdate('btn-vs-ai', t.vsAi);
             safeUpdate('btn-vs-friend', t.vsFriend);
             safeUpdate('title-diff', t.diff);
             safeUpdate('btn-easy', t.easy);
+            safeUpdate('btn-medium', t.medium);
             safeUpdate('btn-hard', t.hard);
             safeUpdate('title-settings', t.settings);
             safeUpdate('lbl-lang', t.lang);
             safeUpdate('btn-save', t.save);
             safeUpdate('btn-reset', t.reset);
-            safeUpdate('btn-main-menu', t.mainMenu);
+            
+            safeUpdate('lbl-score-x', t.scoreX);
+            safeUpdate('lbl-score-ties', t.ties);
+            safeUpdate('lbl-score-o', gameMode === 1 ? t.scoreO_AI : t.scoreO_Friend);
+
+            safeUpdate('lbl-dev-title', t.devTitle);
+            safeUpdate('lbl-about-title', t.aboutTitle);
+            safeUpdate('lbl-about-text', t.aboutText);
+            safeUpdate('btn-trigger-about', t.btnAbout);
+            safeUpdate('btn-trigger-support', t.btnSupport);
+
+            safeUpdate('title-support-panel', t.titleSupportPanel);
+            safeUpdate('txt-support-info', t.txtSupportInfo);
+            safeUpdate('btn-go-telegram', t.btnGoTelegram);
+
+            document.getElementById('val-score-x').innerText = scores.x;
+            document.getElementById('val-score-o').innerText = scores.o;
+            document.getElementById('val-score-ties').innerText = scores.ties;
             
             document.querySelectorAll('.back-link').forEach(el => el.innerText = t.back);
+            document.getElementById('btn-back-support').innerText = t.back;
+            
             document.getElementById('lang-select').value = curLang;
             updateStatus();
         } catch (e) { console.error("UI Update Error: ", e); }
@@ -188,20 +340,14 @@
 
     function changeLang() {
         curLang = document.getElementById('lang-select').value;
-        try {
-            localStorage.setItem('zaid_xo_lang', curLang);
-        } catch (e) {
-            console.warn("Could not save language to storage", e);
-        }
+        try { localStorage.setItem('zaid_xo_lang', curLang); } catch (e) {}
         updateUI();
-    }
-
-    function contactSupport() {
-        alert(translations[curLang].supportMsg);
     }
 
     function startGame(m, d) {
         gameMode = m; if (d !== 'none') aiDifficulty = d;
+        // تصفير احتياطي عند الدخول الفعلي لأي قيم جديد لتبدأ الجلسة نقية
+        scores = { x: 0, o: 0, ties: 0 };
         showScreen('game-screen');
         resetGame();
     }
@@ -211,7 +357,7 @@
         makeMove(idx);
         if (gameActive && gameMode === 1 && currentPlayer === "O") {
             aiThinking = true;
-            setTimeout(() => { aiMove(); aiThinking = false; }, 600);
+            setTimeout(() => { aiMove(); aiThinking = false; }, 500);
         }
     }
 
@@ -224,10 +370,14 @@
         if (winCombo) { 
             winner = currentPlayer; gameActive = false; 
             drawWinLine(winCombo);
+            if(currentPlayer === 'X') scores.x++; else scores.o++;
         }
-        else if (!boardState.includes("")) { winner = 'draw'; gameActive = false; }
+        else if (!boardState.includes("")) { 
+            winner = 'draw'; gameActive = false; 
+            scores.ties++;
+        }
         else { currentPlayer = currentPlayer === "X" ? "O" : "X"; }
-        updateStatus();
+        updateUI();
     }
 
     function drawWinLine(combo) {
@@ -257,10 +407,10 @@
     function updateStatus() {
         const statusEl = document.getElementById('game-status');
         if (!gameActive) {
-            if (winner === 'draw') statusEl.innerText = (curLang === 'ar' ? "تعادل!" : "Draw!");
-            else statusEl.innerText = (curLang === 'ar' ? `الفائز ${winner} 🎉` : `${winner} Wins 🎉`);
+            if (winner === 'draw') statusEl.innerText = (curLang === 'ar' ? "تعادل المواجهة!" : "Match Draw!");
+            else statusEl.innerText = (curLang === 'ar' ? `انتهت بفوز ${winner} 🎉` : `${winner} Wins! 🎉`);
         } else {
-            statusEl.innerText = (curLang === 'ar' ? `دور ${currentPlayer}` : `${currentPlayer}'s Turn`);
+            statusEl.innerText = (curLang === 'ar' ? `دور اللاعب: ${currentPlayer}` : `${currentPlayer}'s Turn`);
         }
     }
 
@@ -269,6 +419,13 @@
         if (aiDifficulty === 'easy') {
             const avail = boardState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
             best = avail[Math.floor(Math.random() * avail.length)];
+        } else if (aiDifficulty === 'medium') {
+            if (Math.random() > 0.5) {
+                best = getBestMove();
+            } else {
+                const avail = boardState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+                best = avail[Math.floor(Math.random() * avail.length)];
+            }
         } else {
             if (!boardState.some(c => c !== "")) best = 4;
             else best = getBestMove();
@@ -314,12 +471,84 @@
         allCells.forEach(c => { c.innerText = ""; c.classList.remove('x', 'o'); });
         const line = document.getElementById('win-line');
         if(line) { line.style.opacity = '0'; line.style.transform = 'rotate(0deg) scaleX(0)'; }
-        updateStatus();
+        updateUI();
     }
 
     allCells.forEach(c => {
         c.addEventListener('click', () => handleCell(parseInt(c.dataset.idx)));
     });
+
+    // محرك جزيئات الخلفية المتحركة
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const shapes = [];
+    const maxShapes = 25;
+
+    class NeonShape {
+        constructor() {
+            this.reset();
+            this.y = Math.random() * canvas.height;
+        }
+
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = -20;
+            this.size = Math.random() * 12 + 8;
+            this.speed = Math.random() * 0.6 + 0.2;
+            this.type = Math.random() > 0.5 ? 'X' : 'O';
+            this.color = this.type === 'X' ? '#ff003c' : '#00f2ff';
+            this.angle = Math.random() * Math.PI * 2;
+            this.rotSpeed = (Math.random() - 0.5) * 0.015;
+        }
+
+        update() {
+            this.y += this.speed;
+            this.angle += this.rotSpeed;
+            if (this.y > canvas.height + 20) { this.reset(); }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.color;
+
+            if (this.type === 'O') {
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                const s = this.size / 2;
+                ctx.beginPath();
+                ctx.moveTo(-s, -s);
+                ctx.lineTo(s, s);
+                ctx.moveTo(s, -s);
+                ctx.lineTo(-s, s);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    for (let i = 0; i < maxShapes; i++) { shapes.push(new NeonShape()); }
+
+    function animateBackground() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        shapes.forEach(shape => { shape.update(); shape.draw(); });
+        requestAnimationFrame(animateBackground);
+    }
+    animateBackground();
 
     updateUI();
 </script>
