@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon XO - Ultimate Edition</title>
+    <link rel="manifest" href="./manifest.json">
     <style type="text/css">
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght=400;700;900&display=swap');
         
@@ -230,6 +231,15 @@
 </div>
 
 <script type="text/javascript">
+    // *** إضافة الـ Service Worker لربط اللعبة بالكاش (حل الـ 404) ***
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./cache-2.js')
+                .then(() => console.log('✅ Service Worker Registered'))
+                .catch(err => console.log('❌ SW Registration Failed', err));
+        });
+    }
+
     const translations = {
         ar: { 
             start: "ابدأ المواجهة", settings: "الإعدادات", mode: "طور اللعب", vsAi: "ضد الذكاء الاصطناعي", vsFriend: "تحدي صديق", back: "رجوع", diff: "الخصم", easy: "المبتدئ", medium: "المتوسط", hard: "Impossible AI", lang: "اللغة (Language):", save: "رجوع للقائمة", reset: "جولة جديدة 🔄", mainMenu: "القائمة الرئيسية", scoreX: "لاعب X", scoreO_AI: "الذكاء الاصطناعي", scoreO_Friend: "لاعب O", ties: "تعادلات",
@@ -245,19 +255,9 @@
 
     let boardState = Array(9).fill(""), currentPlayer = "X", gameActive = true, winner = null, gameMode = 1, aiDifficulty = 'hard', aiThinking = false;
     let curLang = 'ar';
-    
-    // تصفير كامل وصارم للذاكرة المخزنة مؤقتاً لتجنب أخطاء NaN القديمة
-    try {
-        localStorage.removeItem('zaid_xo_scores');
-        sessionStorage.removeItem('zaid_xo_session_scores');
-    } catch(e){}
-
-    // العداد صار متغير داخلي (In-memory) يتلاشى كلياً بمجرد تدمير الجلسة أو الخروج للقائمة الرئيسية
     let scores = { x: 0, o: 0, ties: 0 };
 
-    try {
-        curLang = localStorage.getItem('zaid_xo_lang') || 'ar';
-    } catch (e) { console.warn("Storage fetch failed", e); }
+    try { curLang = localStorage.getItem('zaid_xo_lang') || 'ar'; } catch (e) {}
 
     const allCells = document.querySelectorAll('.cell');
 
@@ -271,71 +271,38 @@
 
     function toggleAboutScreen(show) {
         const panel = document.getElementById('about-panel');
-        if (show) {
-            panel.classList.add('slide-down-active');
-        } else {
-            panel.classList.remove('slide-down-active');
-        }
+        if (show) panel.classList.add('slide-down-active');
+        else panel.classList.remove('slide-down-active');
     }
 
     function handleGameExit() {
-        // العداد يتصفر بالكامل فوراً عند اتخاذ قرار الخروج من اللعبة لضمان نزاهة الجلسة القادمة
         scores = { x: 0, o: 0, ties: 0 };
-        
-        if (gameMode === 1) {
-            // إذا كان بيلعب ضد الذكاء الاصطناعي، يرجعه لقائمة الذكاءات (الصعوبة)
-            showScreen('difficulty-menu');
-        } else {
-            // إذا كان بيلعب ضد صديق، يرجعه لقائمة أطوار اللعب
-            showScreen('mode-selection');
-        }
+        if (gameMode === 1) showScreen('difficulty-menu');
+        else showScreen('mode-selection');
     }
 
     function updateUI() {
         try {
             const t = translations[curLang];
             document.body.dir = curLang === 'ar' ? 'rtl' : 'ltr';
-            
             const safeUpdate = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
-
-            safeUpdate('btn-start', t.start);
-            safeUpdate('btn-settings', t.settings);
-            safeUpdate('title-mode', t.mode);
-            safeUpdate('btn-vs-ai', t.vsAi);
-            safeUpdate('btn-vs-friend', t.vsFriend);
-            safeUpdate('title-diff', t.diff);
-            safeUpdate('btn-easy', t.easy);
-            safeUpdate('btn-medium', t.medium);
-            safeUpdate('btn-hard', t.hard);
-            safeUpdate('title-settings', t.settings);
-            safeUpdate('lbl-lang', t.lang);
-            safeUpdate('btn-save', t.save);
-            safeUpdate('btn-reset', t.reset);
-            
-            safeUpdate('lbl-score-x', t.scoreX);
-            safeUpdate('lbl-score-ties', t.ties);
+            safeUpdate('btn-start', t.start); safeUpdate('btn-settings', t.settings); safeUpdate('title-mode', t.mode);
+            safeUpdate('btn-vs-ai', t.vsAi); safeUpdate('btn-vs-friend', t.vsFriend); safeUpdate('title-diff', t.diff);
+            safeUpdate('btn-easy', t.easy); safeUpdate('btn-medium', t.medium); safeUpdate('btn-hard', t.hard);
+            safeUpdate('title-settings', t.settings); safeUpdate('lbl-lang', t.lang); safeUpdate('btn-save', t.save);
+            safeUpdate('btn-reset', t.reset); safeUpdate('lbl-score-x', t.scoreX); safeUpdate('lbl-score-ties', t.ties);
             safeUpdate('lbl-score-o', gameMode === 1 ? t.scoreO_AI : t.scoreO_Friend);
-
-            safeUpdate('lbl-dev-title', t.devTitle);
-            safeUpdate('lbl-about-title', t.aboutTitle);
-            safeUpdate('lbl-about-text', t.aboutText);
-            safeUpdate('btn-trigger-about', t.btnAbout);
-            safeUpdate('btn-trigger-support', t.btnSupport);
-
-            safeUpdate('title-support-panel', t.titleSupportPanel);
-            safeUpdate('txt-support-info', t.txtSupportInfo);
-            safeUpdate('btn-go-telegram', t.btnGoTelegram);
-
+            safeUpdate('lbl-dev-title', t.devTitle); safeUpdate('lbl-about-title', t.aboutTitle); safeUpdate('lbl-about-text', t.aboutText);
+            safeUpdate('btn-trigger-about', t.btnAbout); safeUpdate('btn-trigger-support', t.btnSupport);
+            safeUpdate('title-support-panel', t.titleSupportPanel); safeUpdate('txt-support-info', t.txtSupportInfo); safeUpdate('btn-go-telegram', t.btnGoTelegram);
             document.getElementById('val-score-x').innerText = scores.x;
             document.getElementById('val-score-o').innerText = scores.o;
             document.getElementById('val-score-ties').innerText = scores.ties;
-            
             document.querySelectorAll('.back-link').forEach(el => el.innerText = t.back);
             document.getElementById('btn-back-support').innerText = t.back;
-            
             document.getElementById('lang-select').value = curLang;
             updateStatus();
-        } catch (e) { console.error("UI Update Error: ", e); }
+        } catch (e) {}
     }
 
     function changeLang() {
@@ -346,7 +313,6 @@
 
     function startGame(m, d) {
         gameMode = m; if (d !== 'none') aiDifficulty = d;
-        // تصفير احتياطي عند الدخول الفعلي لأي قيم جديد لتبدأ الجلسة نقية
         scores = { x: 0, o: 0, ties: 0 };
         showScreen('game-screen');
         resetGame();
@@ -365,17 +331,9 @@
         boardState[idx] = currentPlayer;
         allCells[idx].innerText = currentPlayer;
         allCells[idx].classList.add(currentPlayer.toLowerCase());
-        
         let winCombo = checkWin(boardState, currentPlayer);
-        if (winCombo) { 
-            winner = currentPlayer; gameActive = false; 
-            drawWinLine(winCombo);
-            if(currentPlayer === 'X') scores.x++; else scores.o++;
-        }
-        else if (!boardState.includes("")) { 
-            winner = 'draw'; gameActive = false; 
-            scores.ties++;
-        }
+        if (winCombo) { winner = currentPlayer; gameActive = false; drawWinLine(winCombo); if(currentPlayer === 'X') scores.x++; else scores.o++; }
+        else if (!boardState.includes("")) { winner = 'draw'; gameActive = false; scores.ties++; }
         else { currentPlayer = currentPlayer === "X" ? "O" : "X"; }
         updateUI();
     }
@@ -388,20 +346,14 @@
         const boardRect = board.getBoundingClientRect();
         const firstRect = firstCell.getBoundingClientRect();
         const lastRect = lastCell.getBoundingClientRect();
-        
         const x1 = firstRect.left + firstRect.width / 2 - boardRect.left;
         const y1 = firstRect.top + firstRect.height / 2 - boardRect.top;
         const x2 = lastRect.left + lastRect.width / 2 - boardRect.left;
         const y2 = lastRect.top + lastRect.height / 2 - boardRect.top;
-        
         const length = Math.hypot(x2 - x1, y2 - y1);
         const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-        
-        line.style.width = `${length}px`;
-        line.style.left = `${x1}px`;
-        line.style.top = `${y1}px`;
-        line.style.transform = `rotate(${angle}deg) scaleX(1)`;
-        line.style.opacity = '1';
+        line.style.width = `${length}px`; line.style.left = `${x1}px`; line.style.top = `${y1}px`;
+        line.style.transform = `rotate(${angle}deg) scaleX(1)`; line.style.opacity = '1';
     }
 
     function updateStatus() {
@@ -420,9 +372,7 @@
             const avail = boardState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
             best = avail[Math.floor(Math.random() * avail.length)];
         } else if (aiDifficulty === 'medium') {
-            if (Math.random() > 0.5) {
-                best = getBestMove();
-            } else {
+            if (Math.random() > 0.5) { best = getBestMove(); } else {
                 const avail = boardState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
                 best = avail[Math.floor(Math.random() * avail.length)];
             }
@@ -437,9 +387,7 @@
         let bestScore = -Infinity, move;
         for (let i = 0; i < 9; i++) {
             if (boardState[i] === "") {
-                boardState[i] = "O"; 
-                let score = minimax(boardState, 0, false); 
-                boardState[i] = "";
+                boardState[i] = "O"; let score = minimax(boardState, 0, false); boardState[i] = "";
                 if (score > bestScore) { bestScore = score; move = i; }
             }
         }
@@ -478,65 +426,28 @@
         c.addEventListener('click', () => handleCell(parseInt(c.dataset.idx)));
     });
 
-    // محرك جزيئات الخلفية المتحركة
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
     const shapes = [];
     const maxShapes = 25;
 
     class NeonShape {
-        constructor() {
-            this.reset();
-            this.y = Math.random() * canvas.height;
-        }
-
+        constructor() { this.reset(); this.y = Math.random() * canvas.height; }
         reset() {
-            this.x = Math.random() * canvas.width;
-            this.y = -20;
-            this.size = Math.random() * 12 + 8;
-            this.speed = Math.random() * 0.6 + 0.2;
-            this.type = Math.random() > 0.5 ? 'X' : 'O';
-            this.color = this.type === 'X' ? '#ff003c' : '#00f2ff';
-            this.angle = Math.random() * Math.PI * 2;
-            this.rotSpeed = (Math.random() - 0.5) * 0.015;
+            this.x = Math.random() * canvas.width; this.y = -20;
+            this.size = Math.random() * 12 + 8; this.speed = Math.random() * 0.6 + 0.2;
+            this.type = Math.random() > 0.5 ? 'X' : 'O'; this.color = this.type === 'X' ? '#ff003c' : '#00f2ff';
+            this.angle = Math.random() * Math.PI * 2; this.rotSpeed = (Math.random() - 0.5) * 0.015;
         }
-
-        update() {
-            this.y += this.speed;
-            this.angle += this.rotSpeed;
-            if (this.y > canvas.height + 20) { this.reset(); }
-        }
-
+        update() { this.y += this.speed; this.angle += this.rotSpeed; if (this.y > canvas.height + 20) this.reset(); }
         draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle);
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = this.color;
-
-            if (this.type === 'O') {
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
-                ctx.stroke();
-            } else {
-                const s = this.size / 2;
-                ctx.beginPath();
-                ctx.moveTo(-s, -s);
-                ctx.lineTo(s, s);
-                ctx.moveTo(s, -s);
-                ctx.lineTo(-s, s);
-                ctx.stroke();
-            }
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+            ctx.strokeStyle = this.color; ctx.lineWidth = 2; ctx.shadowBlur = 8; ctx.shadowColor = this.color;
+            if (this.type === 'O') { ctx.beginPath(); ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2); ctx.stroke(); }
+            else { const s = this.size / 2; ctx.beginPath(); ctx.moveTo(-s, -s); ctx.lineTo(s, s); ctx.moveTo(s, -s); ctx.lineTo(-s, s); ctx.stroke(); }
             ctx.restore();
         }
     }
