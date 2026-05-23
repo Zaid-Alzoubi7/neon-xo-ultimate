@@ -7,10 +7,9 @@ const cacheName = 'neon-xo-cyber-eternity-cache-v2';
 
 const assets = [
   './',
-  './index.html',
   './game.html',
   './manifest.json',
-  './sw.js',
+  './cache-2.js',
   './neon_xo_512.png',
   './xo_192x192.png'
 ];
@@ -35,7 +34,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 3. التنشيط وتنظيف الكاش القديم (بدون تكرار)
+// 3. التنشيط وتنظيف الكاش القديم
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
