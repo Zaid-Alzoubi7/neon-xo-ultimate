@@ -1,13 +1,14 @@
 /**
- * Neon XO Ultimate V15 - Service Worker Pro
+ * Neon XO Ultimate V15 - Service Worker
  * المطور: Zaid Alzoubi
  */
 
 const cacheName = 'neon-xo-cyber-eternity-cache-v2';
 
+// تأكدنا هنا من تغيير game.html إلى index.html ليطابق ملفك الجديد
 const assets = [
   './',
-  './game.html',
+  './index.html',
   './manifest.json',
   './cache-2.js',
   './neon_xo_512.png',
